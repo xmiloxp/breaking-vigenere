@@ -15,8 +15,7 @@
 var entropies;
 
 function doBreak() {
-    var text = " VVRUG KCKJK VQSKE GVGTD VMGUG CJGJJ DRRYO VUELL DGJJZ JRRVG ZCHEK VUUEV RZJRL KWJRZ EURVN AVTZE LRICJ GMWTJ ETV";
-    
+	var text = document.getElementById("text").value;
 	entropies = getAllEntropies(text);
 	entropies.sort(function(x, y) {
 		// Compare by lowest entropy, break ties by lowest shift
@@ -27,9 +26,8 @@ function doBreak() {
 	});
 	
 	// Decrypt using lowest entropy shift
-    var bestShift = entropies[0][0];
-    console.log(decrypt(text, bestShift))
-	/*document.getElementById("text").value = decrypt(text, bestShift);
+	var bestShift = entropies[0][0];
+	document.getElementById("text").value = decrypt(text, bestShift);
 	document.getElementById("shift").value = bestShift.toString();
 	
 	// Build table of best guesses
@@ -55,7 +53,7 @@ function doBreak() {
 		tr.onclick = function() {
 			setShift(item[0]);
 		};
-	});*/
+	});
 }
 
 
@@ -101,6 +99,10 @@ var ENGLISH_FREQS = [
 	0.08167, 0.01492, 0.02782, 0.04253, 0.12702, 0.02228, 0.02015, 0.06094, 0.06966, 0.00153, 0.00772, 0.04025, 0.02406,
 	0.06749, 0.07507, 0.01929, 0.00095, 0.05987, 0.06327, 0.09056, 0.02758, 0.00978, 0.02360, 0.00150, 0.01974, 0.00074,
 ];
+var SPANISH_FREQS = [
+	0.11525, 0.02215, 0.04019, 0.05010, 0.12181, 0.00692, 0.01768, 0.00703, 0.06247, 0.00493, 0.00011, 0.04967, 0.03157,
+	0.06712, 0.00010, 0.08683, 0.02510, 0.00877, 0.06871, 0.07977, 0.04632, 0.02927, 0.01138, 0.00017, 0.00215, 0.01008, 0.00467
+];
 
 // Returns the cross-entropy of the given string with respect to the English unigram frequencies, which is a positive floating-point number.
 function getEntropy(str) {
@@ -141,4 +143,3 @@ function clearChildren(node) {
 function mod(x, y) {
 	return (x % y + y) % y;
 }
-doBreak();
