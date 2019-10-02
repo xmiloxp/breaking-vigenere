@@ -1,65 +1,98 @@
-const texto = "AEDOEFIWOPZWMCCWIEDFAVPCQLGAACZXDDGLRAHUOGAARYDMRCJENDBFRAHGFEHSGONPGPSGTDGNIBGRNEWSBEEXWRYXACVPRFGNDHPHNJYZOOLLPQCYXPADVEODIYENDYLTWOHOEOOMFRMIVCEPSRDTGCVVOACMWEZOBLPPWBSGTOFOIZSZLRAGNVTDDWSPAQCYOAHEFIWWZAMPCRVTMGNMVTHNDIZZCDWPANPSDDGOWFOTSRZOGSEOSYNSDONZRZSHLJAGVNSPHHLRTCDZVFOBEINDZZOMRRVSFGCNSDONZRBDFBYPZCDVTSGQSEQCCSZOFSSESGEEZOUSIEQCYHTRCDXDOGVEHWQLWPRRYXMGVLCBOFLTPINNSESBPINVNDGAACOWFOGNIZOKSHMR";
+"use strict";  
+
 const alphbeth = ['A','B','C','D','E','F','G','H','I','J','K','L','M','N','Ñ','O','P','Q','R','S','T','U','V','W','X','Y','Z']
-const stadistics = [10.6,1.16,4.85,5.87,13.11,1.13,1.4,0.6,7.16,0.25,0.11,4.42,3.11,7.14,0.1,8.23,2.71,0.74,6.95,8.47,5.4,4.34,0.82,0.12,0.15,0.79,0.26]
-var stadistics_of_subCrypto = []
-var arr=[];
-var claves = [];
-for (let i = 3; i <= 6; i++) {
-    for (let index = 0; index < texto.length- i; index++) {
-        arr.push(texto.slice(index,index+i));
+
+const SPANISH_FREQS = [
+	0.11525, 0.02215, 0.04019, 0.05010, 0.12181, 0.00692, 0.01768, 0.00703, 0.06247, 0.00493, 0.00011, 0.04967, 0.03157,
+	0.06712, 0.00311, 0.08683, 0.02510, 0.00877, 0.06871, 0.07977, 0.04632, 0.02927, 0.01138, 0.00017, 0.00215, 0.01008, 0.00467
+];
+
+
+
+var entropies = [];
+
+function doBreak(text){
+    var text = document.getElementById("textArea1").value;
+    var nGrams = getNGrams(text);
+    var distancias = getDistance(nGrams,text);
+    var lengths = getPossiblesLengths(distancias);
+    var subCryptos = getSubCrytograms(lengths, text);
+    
+    
+    var decrypted = []
+    var keys = []
+    lengths.map( i => {
+        var values = subCryptos.filter( val => val.num == i)
         
-    }
-}
-
-var contar = [];
-for (let i = 0; i < arr.length; i++) {
-    var space = 0;
-    var espacios = [];
-    var seg = arr[i];
-
-    var distancias = [];
-    for (let j = 0; j < texto.length; j++) {
-        var text = texto.slice(j, j+seg.length);
-        if(text == seg){
-            espacios.push(j);
-        }
-    }   
-    if(espacios.length > 1){
-        for(let i = 0; i < espacios.length; i++){
-            if(espacios[i+1]){
-                distancias.push(espacios[i+1] - espacios[i]);
+        var decrypted = []
+        var key = ''
+        values.map( j => {
+            var entro = getAllEntropies(j.subCrypto)
+            entro.sort(function(x, y) {
+                // Compare by lowest entropy, break ties by lowest shift
+                if (x[1] != y[1])
+                    return x[1] - y[1];
+                else
+                    return x[0] - y[0];
+            });
+            entropies.push(entro);
+            var bestShift = entro[0][0];
+            key += alphbeth[bestShift];
+            
+            decrypted.push(decrypt(j.subCrypto,bestShift))
+        })
+        keys.push(key);
+        document.getElementById('textArea2').append('Clave: '+ key);
+        var string = '';
+        for(var k = 0; k < decrypted.length; k++){
+            var crypto = decrypted[k];
+            
+            for(var j = 0; j < crypto.length; j++){
+                for(var l = 0; l < decrypted.length; l++){
+                    string += decrypted[l][j];
+                }
             }
             
         }
-    }
-    contar.push({seg:seg,posiciones: espacios, distancias: distancias})
+        document.getElementById('textArea2').append('\nTexto: '+ string + '\n\n');
+    })
+    
 }
-function removeDuplicates(originalArray, prop) {
-    var newArray = [];
-    var lookupObject  = {};
-
-    for(var i in originalArray) {
-       lookupObject[originalArray[i][prop]] = originalArray[i];
+function getNGrams(text){
+    var arr = []
+    for (let i = 3; i <= 6; i++) {
+        for (let index = 0; index < text.length- i; index++) {
+            arr.push(text.slice(index,index+i));
+            
+        }
     }
-
-    for(i in lookupObject) {
-        newArray.push(lookupObject[i]);
-    }
-     return newArray;
+    return [...new Set(arr)];
 }
+function getDistance(arr, text){
+    var contar = [];
+    for (let i = 0; i < arr.length; i++) {
+        var espacios = [];
+        var seg = arr[i];
 
-var hash = {};
-contar = contar.filter(function(current) {
-  var exists = !hash[current.seg] || false;
-  hash[current.seg] = true;
-  return exists;
-});
-
-var array = contar.filter( (value) => value.distancias.length >= 1)
-//console.log(array)
-
-//console.log(valoresDistancia)
-// MCD
+        var distancias = [];
+        for (let j = 0; j < text.length; j++) {
+            var texto = text.slice(j, j+seg.length);
+            if(texto == seg){
+                espacios.push(j);
+            }
+        }   
+        if(espacios.length > 1){
+            for(let i = 0; i < espacios.length; i++){
+                if(espacios[i+1]){
+                    distancias.push(espacios[i+1] - espacios[i]);
+                }
+                
+            }
+        }
+        contar.push({seg:seg,posiciones: espacios, distancias: distancias})
+    }
+    return contar;
+}
 function MCD(nums){
     var mcd = nums[0];
     var r;
@@ -73,111 +106,66 @@ function MCD(nums){
     }
     return mcd;
 }
-
-console.log("Posibles longitudes de clave");
-var longitudes = [];
-for( let i = 3; i <= 6; i++){
-    var newArray = array.filter(value => value.seg.length == i);
-    //console.log(i,newArray)
-    let valoresDistancia = [];
-    newArray.map(value => {
-        value.distancias.map(val => {
-            valoresDistancia.push(val);
-        })
+function getPossiblesLengths(arrL){
+    var longitudes = [];
+    var arr = arrL.filter((val) => val.distancias.length>=1)
+    for( let i = 3; i <= 6; i++){
+        var newArray = arr.filter(value => value.seg.length == i);
         
+        let valoresDistancia = [];
+        newArray.map(value => {
+            value.distancias.map(val => {
+                valoresDistancia.push(val);
+            })            
+        })        
+        var mcd = MCD(valoresDistancia);
+        if(mcd && mcd>2){
+            longitudes.push(mcd)
+        }
+    }
+    return [...new Set(longitudes)];
+}
+function getSubCrytograms(arr,text){
+    let subCryto = '';
+    let subCrytoArr = []
+    arr.map(val => {
+        if(val > 2){
+            for (let i = 0; i < val; i++) {
+                subCryto = '';
+                
+                for (let j = i; j < text.length ; j += val ) {
+                    subCryto += text[j];
+                }
+                subCrytoArr.push({num: val, subCrypto: subCryto})
+            }
+        }
+       
     })
-    
-    var mcd = MCD(valoresDistancia);
-    
-    if(mcd){
-        longitudes.push(mcd)
-        console.log("Longitud: ", mcd)
-    }
-        
-    
-    
+    return subCrytoArr;
 }
-
-let subCryto = [];
-longitudes.map(val => {
-    for (let i = 0; i < val; i++) {
-        subCryto[i] = '';
-        for (let j = i; j < texto.length ; j += val ) {
-            subCryto[i] += texto[j];
-        }
-        
-    }    
-    console.log(val, subCryto)    
-    var clave = '';
-    var keys = []
-    subCryto.map(value => {
-        clave += alphbeth[getKey(count(value), value.length)]
-        keys.push(getKey(count(value),value.length))
-    })
-    console.log("con Longitud: "+ val +", clave="+clave)
-    claves.push({longitud: val, keys: keys})
-})
-function count (string) { 
-    var count = {};
-    string.split('').forEach(function(s) {
-        count[s] ? count[s]++ : count[s] = 1;
-    }); 
-    return count; 
-} 
-
-function getKey(string, size){
-
-    for (let i = 0; i < alphbeth.length; i++) {
-        stadistics_of_subCrypto[i] = string[alphbeth[i]]? string[alphbeth[i]]/size : 0;
-    }
-    var sums = []
-    for (let i = 0; i < stadistics.length; i++) {
-        var sum = 0;
-        for (let j = 0; j < stadistics.length; j++) {
-            sum += stadistics[j] * stadistics_of_subCrypto[j];
-            
-        }
-        sums.push(Number(sum.toFixed(3)));
-        //cambio
-        var a = stadistics_of_subCrypto[0];
-        
-        for (let j = 1 ; j < stadistics.length; j++) {
-            stadistics_of_subCrypto[j-1] = stadistics_of_subCrypto[j]
-        }
-        
-        stadistics_of_subCrypto[alphbeth.length-1] = a;
-        
-    }
-    
-    var max = Math.max(...sums)
-    return sums.indexOf(max);
+function mod(x, y) {
+	return (x % y + y) % y;
 }
-console.log('claves',claves)
-// transformar a numeros
-var texto_numeros= []
-for (let i = 0; i < texto.length; i++) {
-    texto_numeros.push(alphbeth.indexOf(texto[i]))
-}
-
-
-for (let i = 0; i < claves.length; i++) {
-    var k = 0;
-    var texto_numeros_dec = []
-    for (let j = 0; j < texto_numeros.length; j++) {
-        if(k >= claves[i].keys.length){
-            k = 0;
-        }
-        
-        texto_numeros_dec.push((texto_numeros[j] - claves[i].keys[k]) < 0 ? alphbeth.length + (texto_numeros[j] - claves[i].keys[k]): texto_numeros[j] - claves[i].keys[k]);
-        k++;
+function decrypt(str, key) {
+	var result = "";
+	for (var i = 0; i < str.length; i++) {
+        result += alphbeth[mod(alphbeth.indexOf(str[i]) - key, 27)]
     }
-    var texto_dec = '';
-    for (let i = 0; i < texto_numeros_dec.length; i++) {
-        texto_dec += alphbeth[texto_numeros_dec[i]];
-    }
-    console.log("Con clave: ", claves[i].keys);
-    console.log(texto_dec)
+	return result;
 }
-
-
-
+function getEntropy(str) {
+	var sum = 0;
+	var ignored = 0;
+	for (var i = 0; i < str.length; i++) {
+		
+		sum += Math.log(SPANISH_FREQS[alphbeth.indexOf(str[i])]);  // Uppercase
+		
+	}
+	return -sum / Math.log(2) / (str.length - ignored);
+}
+function getAllEntropies(str) {
+	var result = [];
+	for (var i = 0; i < 27; i++)
+		result.push([i, getEntropy(decrypt(str, i))]);
+	return result;
+}
